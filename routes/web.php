@@ -66,6 +66,7 @@ Route::group(['middleware' => 'auth'], function() {
     Route::get('/company/{company}/document/{cufe}', 'HomeController@getXml')->name('getXml');
     Route::get('/company/{company}/events', 'HomeController@events')->name('company.events');
     Route::get('/company/{company}/payrolls', 'HomeController@payrolls')->name('company.payrolls');
+    Route::post('/company/{company}/toggle-state', 'HomeController@toggleCompanyState')->name('company.toggle-state');
     Route::get('/documents', 'HomeController@listDocuments')->name('listdocuments');
     Route::get('/taxes', 'HomeController@listTaxes')->name('listtaxes');
     Route::get('/listconfigurations', 'HomeController@listConfigurations')->name('listconfigurations');

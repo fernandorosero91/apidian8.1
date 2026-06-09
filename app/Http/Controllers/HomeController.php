@@ -2,42 +2,52 @@
 
 namespace App\Http\Controllers;
 
-use GuzzleHttp\Client;
 use App\Company;
 use App\Document;
-use App\ReceivedDocument;
 use App\DocumentPayroll;
-
+use App\ReceivedDocument;
+use App\User;
+use GuzzleHttp\Client;
 
 class HomeController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     */
     public function __construct()
     {
         $this->middleware('auth');
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
     public function index()
     {
-        $companies = Company::get()->transform( function($row) {
-            $documents = Document::where('identification_number', $row->identification_number)->count();
-            $row->total_documents = $documents;
+        $companies = Company::with('user')->get()->transform(function ($row) {
+            $row->total_documents = Document::where('identification_number', $row->identification_number)->count();
             return $row;
         });
 
-        return view('home', ['companies' => $companies]);
+        $stats = [
+            'companies' => $companies->count(),
+            'active_companies' => $companies->where('state', '!=', 0)->count(),
+            'documents' => Document::count(),
+            'payrolls' => DocumentPayroll::count(),
+            'users' => User::count(),
+        ];
+
+        return view('admin.dashboard', compact('companies', 'stats'));
+    }
+
+    public function toggleCompanyState($identification_number)
+    {
+        $company = Company::where('identification_number', $identification_number)->firstOrFail();
+        $company->state = $company->state === 0 ? 1 : 0;
+        $company->save();
+
+        return back()->with('success', $company->state ? 'Empresa activada' : 'Empresa desactivada');
     }
 
     public function company(Company $company)
     {
-        $documents = Document::where('identification_number', $company->identification_number)->orderBy('id', 'DESC')->paginate(20);
+        $documents = Document::where('identification_number', $company->identification_number)
+            ->orderBy('id', 'DESC')
+            ->paginate(20);
 
         return view('company.documents', ['company' => $company, 'documents' => $documents]);
     }
@@ -45,20 +55,18 @@ class HomeController extends Controller
     public function getXml(Company $company, $cufe)
     {
         $token = $company->user->api_token;
-        $url = url('/api/ubl2.1/xml/document/'.$cufe);
+        $url = url('/api/ubl2.1/xml/document/' . $cufe);
 
         $client = new Client();
         $response = $client->post($url, [
             'headers' => [
                 'Authorization' => 'Bearer ' . $token,
-                'Accept'        => 'application/json',
+                'Accept' => 'application/json',
             ]
         ]);
 
-        // dd($response);
         $responseBody = json_decode($response->getBody(), true);
 
-        // Manejar la respuesta
         if ($response->getStatusCode() == 200) {
             return response()->json($responseBody);
         } else {
@@ -70,16 +78,19 @@ class HomeController extends Controller
         }
     }
 
-    // replica de SellerLoginController@SellersRadianEventsView
-    public function events($company_idnumber){
-        $documents = ReceivedDocument::where('customer','=',$company_idnumber)->where('state_document_id', '=', 1)->paginate(10);
+    public function events($company_idnumber)
+    {
+        $documents = ReceivedDocument::where('customer', '=', $company_idnumber)
+            ->where('state_document_id', '=', 1)
+            ->paginate(10);
         return view('company.events', compact('documents', 'company_idnumber'));
     }
 
-    // replica de SellerLoginController@SellersPayrolls
     public function payrolls($company_idnumber)
     {
-        $documents = DocumentPayroll::where('state_document_id', '=', 1)->where('identification_number', $company_idnumber)->paginate(20);
+        $documents = DocumentPayroll::where('state_document_id', '=', 1)
+            ->where('identification_number', $company_idnumber)
+            ->paginate(20);
         return view('company.payrolls', compact('documents', 'company_idnumber'));
     }
 }

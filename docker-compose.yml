@@ -62,7 +62,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_CLIENT=phpredis
       - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
+      - SESSION_DRIVER=file
       - QUEUE_CONNECTION=redis
       - MAIL_MAILER=${MAIL_MAILER:-smtp}
       - MAIL_HOST=${MAIL_HOST:-}

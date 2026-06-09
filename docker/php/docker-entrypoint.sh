@@ -7,10 +7,9 @@ echo "============================================"
 
 cd /var/www/html
 
-# [1] Crear .env desde variables de entorno si no existe
-if [ ! -f ".env" ]; then
-    echo "[1/8] Generando .env desde variables de entorno..."
-    cat > .env << EOF
+# [1] Crear .env desde variables de entorno
+echo "[1/8] Generando .env..."
+cat > .env << EOF
 APP_NAME="${APP_NAME:-APIDIAN}"
 APP_VERSION="${APP_VERSION:- v2.1}"
 APP_ENV=${APP_ENV:-production}
@@ -31,7 +30,7 @@ DB_PASSWORD=${DB_PASSWORD:-apidian}
 BROADCAST_DRIVER=${BROADCAST_DRIVER:-log}
 CACHE_DRIVER=${CACHE_DRIVER:-redis}
 QUEUE_CONNECTION=${QUEUE_CONNECTION:-redis}
-SESSION_DRIVER=${SESSION_DRIVER:-redis}
+SESSION_DRIVER=${SESSION_DRIVER:-file}
 SESSION_LIFETIME=${SESSION_LIFETIME:-120}
 
 REDIS_HOST=${REDIS_HOST:-redis}
@@ -56,9 +55,6 @@ VALIDATE_BEFORE_SENDING=${VALIDATE_BEFORE_SENDING:-true}
 SAVE_RESPONSE_DIAN_TO_DB=${SAVE_RESPONSE_DIAN_TO_DB:-false}
 ENABLE_API_REGISTER=${ENABLE_API_REGISTER:-true}
 EOF
-else
-    echo "[1/8] .env ya existe."
-fi
 
 # [2] Permisos
 echo "[2/8] Configurando permisos..."
@@ -74,8 +70,6 @@ mkdir -p /var/log/php
 
 chmod -R 777 storage
 chmod -R 777 bootstrap/cache
-touch storage/logs/laravel.log
-chmod 777 storage/logs/laravel.log
 
 # [3] Instalar dependencias si no existen
 if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
@@ -87,19 +81,16 @@ else
     echo "[3/8] Dependencias ya instaladas."
 fi
 
-# [4] Ejecutar urn_on.sh (patches de templates DIAN)
-echo "[4/8] Ejecutando urn_on.sh (patches de templates DIAN)..."
+# [4] Ejecutar urn_on.sh
+echo "[4/8] Ejecutando urn_on.sh..."
 if [ -f "urn_on.sh" ]; then
     chmod +x urn_on.sh
     bash urn_on.sh
 fi
 
-# Permisos para mPDF
+# Permisos mPDF
 if [ -d "vendor/mpdf/mpdf" ]; then
     chmod -R 777 vendor/mpdf/mpdf
-fi
-if [ -d "vendor/dompdf" ]; then
-    chmod -R 777 vendor/dompdf
 fi
 
 # [5] Generar APP_KEY si no existe
@@ -118,11 +109,11 @@ php artisan storage:link --force 2>/dev/null || true
 echo "[7/8] Ejecutando migraciones..."
 php artisan migrate --seed --force --no-interaction 2>&1 || echo "WARN: Migraciones fallaron o ya ejecutadas"
 
-# [8] Optimizar para producción
-echo "[8/8] Optimizando para producción..."
-php artisan config:cache 2>/dev/null || true
-php artisan route:cache 2>/dev/null || true
-php artisan view:cache 2>/dev/null || true
+# [8] Optimizar
+echo "[8/8] Optimizando..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 php artisan package:discover --ansi 2>/dev/null || true
 php artisan cache:warmup 2>/dev/null || true
 

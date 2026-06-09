@@ -1,6 +1,6 @@
 FROM php:8.1-fpm-bookworm AS base
 
-# Configurar zona horaria del sistema (Colombia UTC-5)
+# Configurar zona horaria
 ENV TZ=America/Bogota
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
@@ -28,8 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mariadb-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurar OpenSSL para soportar algoritmos legacy
-# CRÍTICO para certificados DIAN .p12 que usan RC2-40-CBC
+# OpenSSL legacy para certificados DIAN .p12 (RC2-40-CBC)
 RUN cp /etc/ssl/openssl.cnf /etc/ssl/openssl.cnf.backup && \
     cat > /etc/ssl/openssl.cnf << 'OPENSSLEOF'
 openssl_conf = openssl_init
@@ -56,7 +55,7 @@ OPENSSLEOF
 
 ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
 
-# Configurar e instalar extensiones PHP
+# Extensiones PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
     && docker-php-ext-install -j$(nproc) \
@@ -75,7 +74,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         xsl \
         sockets
 
-# Instalar extensiones PECL
+# Redis e Imagick
 RUN pecl install redis-5.3.7 imagick \
     && docker-php-ext-enable redis imagick
 
@@ -84,48 +83,37 @@ RUN pecl install redis-5.3.7 imagick \
 # ============================================
 FROM base AS production
 
-# Configuración PHP para producción
-COPY php-production.ini /usr/local/etc/php/conf.d/99-production.ini
+# PHP config
+COPY docker/php/php-production.ini /usr/local/etc/php/conf.d/99-production.ini
 
-# Copiar entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Copiar TODO el código del proyecto dentro de la imagen
+COPY . .
+
+# Entrypoint
+COPY docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Crear directorios necesarios y permisos
+RUN mkdir -p /var/log/php \
+    && mkdir -p storage/framework/cache/data \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p storage/logs \
+    && mkdir -p storage/app/public \
+    && mkdir -p storage/app/certificates \
+    && mkdir -p storage/received \
+    && mkdir -p bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
 
 # Variables de entorno
 ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
 ENV TZ=America/Bogota
 
-WORKDIR /var/www/html
-
-# Copiar composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-# Crear directorios con permisos correctos
-RUN mkdir -p /var/log/php \
-    && mkdir -p /var/www/html/storage \
-    && mkdir -p /var/www/html/bootstrap/cache
-
 EXPOSE 9000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-
-# ============================================
-# STAGE: Development
-# ============================================
-FROM base AS development
-
-RUN pecl install xdebug-3.2.2 \
-    && docker-php-ext-enable xdebug
-
-COPY php-development.ini /usr/local/etc/php/conf.d/99-development.ini
-
-ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
-ENV TZ=America/Bogota
-
-WORKDIR /var/www/html
-
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-EXPOSE 9000
-
-CMD ["php-fpm"]

@@ -5,16 +5,15 @@ services:
   # ============================================
   nginx:
     build:
-      context: ./docker/nginx
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile
     restart: unless-stopped
     environment:
       - TZ=America/Bogota
     ports:
       - "3080:80"
     volumes:
-      - ./:/var/www/html:cached
-      - ./docker/nginx/sites-available:/etc/nginx/sites-available:ro
+      - app_storage:/var/www/html/storage
       - nginx_logs:/var/log/nginx
     depends_on:
       php:
@@ -34,12 +33,12 @@ services:
   # ============================================
   php:
     build:
-      context: ./docker/php
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./docker/php/Dockerfile
       target: production
     restart: unless-stopped
     volumes:
-      - ./:/var/www/html:cached
+      - app_storage:/var/www/html/storage
       - php_logs:/var/log/php
     depends_on:
       mariadb:
@@ -157,6 +156,8 @@ volumes:
   mariadb_data:
     driver: local
   redis_data:
+    driver: local
+  app_storage:
     driver: local
   nginx_logs:
     driver: local

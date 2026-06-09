@@ -22,7 +22,7 @@ class Worker extends Model
         'type_worker_id', 'sub_type_worker_id', 'payroll_type_document_identification_id', 'country_id', 'municipality_id', 'type_contract_id', 'high_risk_pension', 'identification_number', 'surname', 'second_surname', 'first_name', 'middle_name', 'address', 'integral_salarary', 'salary', 'worker_code', 'email',
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->type_worker = $this->type_worker();

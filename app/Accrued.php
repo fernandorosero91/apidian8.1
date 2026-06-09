@@ -19,7 +19,7 @@ class Accrued extends Model
         'telecommuting', 'withdrawal_bonus', 'compensation',
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         if(isset($this->attributes['HEDs']))

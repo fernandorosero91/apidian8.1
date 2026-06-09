@@ -18,7 +18,7 @@ class Deduction extends Model
         'afc', 'cooperative', 'tax_liens', 'supplementary_plan', 'education', 'refund', 'debt', 'third_party_payments', 'advances', 'other_deductions',
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->eps_type_law_deductions = $this->type_law_deduction($this->attributes['eps_type_law_deductions_id']);

@@ -20,7 +20,7 @@ class GeneralItem extends Model
         'other_deduction',
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         if(isset($this->attributes['type']))

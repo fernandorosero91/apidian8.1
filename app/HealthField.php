@@ -16,7 +16,7 @@ class HealthField extends Model
         'users_info', 'invoice_period_start_date', 'invoice_period_end_date', 'health_type_operation_id', 'print_users_info_to_pdf'
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->health_type_operation = $this->health_type_operation();

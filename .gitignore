@@ -17,4 +17,8 @@ habilitacion.bat
 /storage/api-docs
 usuario_admin.txt
 .vscode/
+.DS_Store
+.idea/
+composer.lock
+CREDENCIALES.txt
 !storage/api-docs/api-docs.json

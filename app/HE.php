@@ -16,7 +16,7 @@ class HE extends Model
         'start_time', 'end_time', 'quantity', 'percentage', 'payment',
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->type_overtime_surcharge = $this->type_overtime_surcharge();

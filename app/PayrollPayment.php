@@ -16,7 +16,7 @@ class PayrollPayment extends Model
         'payment_method_id', 'bank_name', 'account_type', 'account_number',
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->payment_method = $this->payment_method();

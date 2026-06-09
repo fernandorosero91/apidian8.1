@@ -19,7 +19,7 @@ class HealthUser extends Model
         'recovery_fee', 'shared_payment', 'advance_payment'
     ];
 
-    public function __construct(array $attributes = array())
+    public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
         $this->health_contracting_payment_method = $this->health_contracting_payment_method();

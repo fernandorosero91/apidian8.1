@@ -1,0 +1,168 @@
+/* APIDIAN Professional Theme */
+/* Minimal overrides - respeta el tema Porto */
+
+:root {
+    --primary: #0066cc;
+    --primary-hover: #0052a3;
+    --success: #28a745;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --info: #17a2b8;
+    --dark: #343a40;
+    --gray-100: #f8f9fa;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --text-muted: #6c757d;
+}
+
+/* Cards - Solo headers oscuros */
+.card-header {
+    background: var(--dark) !important;
+    color: #fff !important;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-bottom: none;
+}
+
+/* Tables */
+.table thead th {
+    background: var(--gray-100);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--gray-300);
+}
+
+.table tbody td {
+    vertical-align: middle;
+}
+
+/* Botones - Color primario único */
+.btn-primary {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+}
+
+/* Stats Cards */
+.stat-card {
+    background: #fff;
+    border-radius: 6px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--gray-300);
+}
+
+.stat-card .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.stat-card .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #212529;
+}
+
+.stat-card .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.empty-state i {
+    font-size: 36px;
+    color: #ced4da;
+    margin-bottom: 12px;
+}
+
+.empty-state h3 {
+    color: #495057;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* Company Avatar */
+.company-avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--dark);
+    color: #fff;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* NIT Code */
+.nit-code {
+    background: var(--gray-200);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #495057;
+    font-family: monospace;
+}
+
+/* Badges */
+.badge-primary {
+    background: var(--primary) !important;
+}
+
+.badge-success {
+    background: var(--success) !important;
+}
+
+.badge-warning {
+    background: var(--warning) !important;
+    color: #212529 !important;
+}
+
+.badge-danger {
+    background: var(--danger) !important;
+}
+
+/* Fade Animation */
+.fade-in {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Element UI - Color primario */
+.el-button--primary {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+.el-button--primary:hover {
+    background: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+}

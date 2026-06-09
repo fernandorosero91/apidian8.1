@@ -1,0 +1,84 @@
+# Docker Compose para desarrollo local
+# Uso: docker compose -f docker-compose.local.yml up -d
+
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: apidian_nginx_dev
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/sites-available:/etc/nginx/sites-available:ro
+    depends_on:
+      - php
+    networks:
+      - apidian_network_dev
+
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+      target: development
+    container_name: apidian_php_dev
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_DATABASE=apidian
+      - DB_USERNAME=apidian
+      - DB_PASSWORD=apidian123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - XDEBUG_MODE=debug
+    networks:
+      - apidian_network_dev
+
+  mariadb:
+    image: mariadb:10.11
+    container_name: apidian_mariadb_dev
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: apidian
+      MYSQL_USER: apidian
+      MYSQL_PASSWORD: apidian123
+    ports:
+      - "3307:3306"
+    volumes:
+      - apidian_mysql_data_dev:/var/lib/mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    networks:
+      - apidian_network_dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: apidian_redis_dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - apidian_redis_data_dev:/data
+    command: redis-server --appendonly yes
+    networks:
+      - apidian_network_dev
+
+networks:
+  apidian_network_dev:
+    driver: bridge
+
+volumes:
+  apidian_mysql_data_dev:
+    driver: local
+  apidian_redis_data_dev:
+    driver: local

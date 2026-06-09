@@ -1,0 +1,149 @@
+services:
+  # ============================================
+  # NGINX - Servidor Web con SSL
+  # ============================================
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: apidian_nginx
+    restart: unless-stopped
+    environment:
+      - TZ=America/Bogota
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www/html:cached
+      - ./docker/nginx/sites-available:/etc/nginx/sites-available:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      php:
+        condition: service_healthy
+    networks:
+      - apidian_network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # PHP-FPM - Aplicación
+  # ============================================
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+      target: production
+    container_name: apidian_php
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html:cached
+      - php_logs:/var/log/php
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - TZ=America/Bogota
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-apidian}
+      - DB_USERNAME=${DB_USERNAME:-apidian}
+      - DB_PASSWORD=${DB_PASSWORD:-apidian}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+    networks:
+      - apidian_network
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm -t || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # MariaDB - Base de Datos (solo red interna)
+  # ============================================
+  mariadb:
+    image: mariadb:10.11
+    container_name: apidian_mariadb
+    restart: unless-stopped
+    environment:
+      TZ: America/Bogota
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_DATABASE:-apidian}
+      MYSQL_USER: ${DB_USERNAME:-apidian}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-apidian}
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/mariadb/init:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+      --innodb-log-file-size=64M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+      --max-connections=200
+    networks:
+      - apidian_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================================
+  # Redis - Cache y Sesiones (solo red interna)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: apidian_redis
+    restart: unless-stopped
+    environment:
+      - TZ=America/Bogota
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+    volumes:
+      - redis_data:/data
+    networks:
+      - apidian_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  apidian_network:
+    driver: bridge
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  mariadb_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_logs:
+    driver: local
+  php_logs:
+    driver: local

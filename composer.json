@@ -1,0 +1,121 @@
+{
+    "name": "torresoftware/apidian",
+    "type": "project",
+    "description": "API Electronic Invoicing Pre-Validation UBL 2.1.",
+    "keywords": [
+        "laravel",
+        "soap dian",
+        "web service",
+        "dian",
+        "xml",
+        "ubl",
+        "api"
+    ],
+    "license": "LGPL-3.0",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://gitlab.com/torresoftware/ubl21dian.git"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "ext-imagick": "*",
+        "ext-soap": "*",
+        "ext-gd": "*",
+        "ext-zip": "*",
+        "ext-intl": "*",
+        "ext-redis": "*",
+        "aws/aws-sdk-php": "^3.280",
+        "barryvdh/laravel-dompdf": "^2.0",
+        "darkaonline/l5-swagger": "^8.6",
+        "doctrine/dbal": "^3.6",
+        "dragonmantank/cron-expression": "^3.3",
+        "guzzlehttp/guzzle": "^7.8",
+        "laravel/framework": "^10.48.22",
+        "laravel/tinker": "^2.9",
+        "laravel/ui": "^4.2",
+        "mpdf/mpdf": "^8.2",
+        "mtownsend/request-xml": "^2.6",
+        "nette/utils": "^4.0.0",
+        "piotrooo/wsdl-creator": "^3.1",
+        "rguedes/pdfmerger": "^1.0",
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "spatie/laravel-backup": "^8.1.0",
+        "symfony/browser-kit": "^6.4.11",
+        "symfony/http-client": "^6.4.11",
+        "ubl21dian/torresoftware": "dev-master",
+        "symfony/console": "^6.4.11",
+        "symfony/css-selector": "^6.4.11",
+        "symfony/error-handler": "^6.4.11",
+        "symfony/event-dispatcher": "^6.4.11",
+        "symfony/filesystem": "^6.4.11",
+        "symfony/finder": "^6.4.11",
+        "symfony/http-foundation": "^6.4.11",
+        "symfony/http-kernel": "^6.4.11",
+        "symfony/mailer": "^6.4.11",
+        "symfony/mime": "^6.4.11",
+        "symfony/process": "^6.4.11",
+        "symfony/routing": "^6.4.11",
+        "symfony/string": "^6.4.11",
+        "symfony/translation": "^6.4.11",
+        "symfony/var-dumper": "^6.4.11",
+        "symfony/yaml": "^6.4.11"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "filp/whoops": "^2.15",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^7.0",
+        "phpunit/phpunit": "^9.6"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
+        },
+        "audit": {
+            "block-insecure": false
+        },
+        "platform": {
+            "php": "8.1.33"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Goutte\\": "app/Custom/Goutte/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        },
+        "classmap": [
+            "database/seeds",
+            "database/factories"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ]
+    }
+}

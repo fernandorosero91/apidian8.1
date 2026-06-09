@@ -1,67 +1,78 @@
+version: '3.8'
+
 services:
-  # ============================================
-  # NGINX - Servidor Web
-  # ============================================
   nginx:
     build:
-      context: .
-      dockerfile: ./docker/nginx/Dockerfile
-    restart: unless-stopped
-    environment:
-      - TZ=America/Bogota
-    ports:
-      - "3080:80"
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.apidian3.rule=Host(`apidian3.gestionxpress.app`)"
+      - "traefik.http.routers.apidian3.entrypoints=websecure"
+      - "traefik.http.routers.apidian3.tls.certresolver=letsencrypt"
+      - "traefik.http.services.apidian3.loadbalancer.server.port=80"
     volumes:
-      - app_storage:/var/www/html/storage
+      - ./:/var/www/html:cached
+      - ./docker/nginx/sites-available:/etc/nginx/conf.d
+      - nginx_cache:/var/cache/nginx
       - nginx_logs:/var/log/nginx
     depends_on:
-      php:
-        condition: service_healthy
+      - php
     networks:
-      - default
+      - api_dian
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 40s
 
-  # ============================================
-  # PHP-FPM 8.1 - Aplicación Laravel 10
-  # ============================================
   php:
     build:
       context: .
-      dockerfile: ./docker/php/Dockerfile
-      target: production
-    restart: unless-stopped
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html
     volumes:
-      - app_storage:/var/www/html/storage
-      - php_logs:/var/log/php
+      - ./:/var/www/html:cached
+      - php_sessions:/tmp
+      - composer_cache:/root/.composer
     depends_on:
       mariadb:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - api_dian
     environment:
-      - TZ=America/Bogota
+      - APP_NAME=${APP_NAME:-APIDIAN}
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - APP_KEY=${APP_KEY:-}
-      - APP_URL=${APP_URL:-http://localhost}
+      - APP_URL=${APP_URL:-https://apidian3.gestionxpress.app}
       - FORCE_HTTPS=${FORCE_HTTPS:-true}
-      - DB_CONNECTION=mysql
-      - DB_HOST=mariadb
-      - DB_PORT=3306
+      - APP_TIMEZONE=${APP_TIMEZONE:-America/Bogota}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=${DB_HOST:-mariadb}
+      - DB_PORT=${DB_PORT:-3306}
       - DB_DATABASE=${DB_DATABASE:-apidian}
       - DB_USERNAME=${DB_USERNAME:-apidian}
-      - DB_PASSWORD=${DB_PASSWORD:-apidian}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CLIENT=phpredis
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=file
-      - QUEUE_CONNECTION=redis
+      - DB_PASSWORD=${DB_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - CACHE_DRIVER=${CACHE_DRIVER:-file}
+      - SESSION_DRIVER=${SESSION_DRIVER:-file}
+      - QUEUE_CONNECTION=${QUEUE_CONNECTION:-sync}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - ALLOW_PUBLIC_DOWNLOAD=${ALLOW_PUBLIC_DOWNLOAD:-true}
+      - ALLOW_PUBLIC_REGISTER=${ALLOW_PUBLIC_REGISTER:-true}
+      - VALIDATE_BEFORE_SENDING=${VALIDATE_BEFORE_SENDING:-true}
+      - APPLY_SEND_CUSTOMER_CREDENTIALS=${APPLY_SEND_CUSTOMER_CREDENTIALS:-true}
+      - GRAPHIC_REPRESENTATION_TEMPLATE=${GRAPHIC_REPRESENTATION_TEMPLATE:-2}
+      - ENABLE_API_REGISTER=${ENABLE_API_REGISTER:-true}
+      - SAVE_RESPONSE_DIAN_TO_DB=${SAVE_RESPONSE_DIAN_TO_DB:-false}
       - MAIL_MAILER=${MAIL_MAILER:-smtp}
       - MAIL_HOST=${MAIL_HOST:-}
       - MAIL_PORT=${MAIL_PORT:-587}
@@ -70,64 +81,45 @@ services:
       - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
       - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-}
       - MAIL_FROM_NAME=${MAIL_FROM_NAME:-APIDIAN}
-      - ALLOW_PUBLIC_DOWNLOAD=${ALLOW_PUBLIC_DOWNLOAD:-true}
-      - APPLY_SEND_CUSTOMER_CREDENTIALS=${APPLY_SEND_CUSTOMER_CREDENTIALS:-true}
-      - GRAPHIC_REPRESENTATION_TEMPLATE=${GRAPHIC_REPRESENTATION_TEMPLATE:-2}
-      - VALIDATE_BEFORE_SENDING=${VALIDATE_BEFORE_SENDING:-true}
-      - ENABLE_API_REGISTER=${ENABLE_API_REGISTER:-true}
-      - ALLOW_PUBLIC_REGISTER=${ALLOW_PUBLIC_REGISTER:-true}
-      - SAVE_RESPONSE_DIAN_TO_DB=${SAVE_RESPONSE_DIAN_TO_DB:-false}
-    networks:
-      - default
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "php-fpm -t || exit 1"]
+      test: ["CMD", "php", "-v"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 40s
 
-  # ============================================
-  # MariaDB 10.11
-  # ============================================
   mariadb:
     image: mariadb:10.11
-    restart: unless-stopped
     environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: apidian
+      MYSQL_USER: apidian
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_HOST: '%'
       TZ: America/Bogota
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${DB_DATABASE:-apidian}
-      MYSQL_USER: ${DB_USERNAME:-apidian}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-apidian}
-      MARIADB_AUTO_UPGRADE: "1"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - apidian_mysql_data:/var/lib/mysql
       - ./docker/mariadb/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - api_dian
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
+      --max-connections=200
       --innodb-buffer-pool-size=256M
       --innodb-log-file-size=64M
-      --innodb-flush-log-at-trx-commit=2
-      --innodb-flush-method=O_DIRECT
-      --max-connections=200
       --skip-name-resolve
-    networks:
-      - default
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
 
-  # ============================================
-  # Redis 7
-  # ============================================
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
-    environment:
-      - TZ=America/Bogota
     command: >
       redis-server
       --appendonly yes
@@ -137,21 +129,29 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - default
+      - api_dian
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 3
+      start_period: 30s
+
+networks:
+  api_dian:
+    driver: bridge
 
 volumes:
-  mariadb_data:
+  apidian_mysql_data:
     driver: local
   redis_data:
     driver: local
-  app_storage:
+  nginx_cache:
     driver: local
   nginx_logs:
     driver: local
-  php_logs:
+  php_sessions:
+    driver: local
+  composer_cache:
     driver: local

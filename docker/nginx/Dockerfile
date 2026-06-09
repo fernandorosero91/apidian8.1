@@ -4,14 +4,11 @@ FROM nginx:1.25-alpine
 RUN rm /etc/nginx/conf.d/default.conf
 
 # Copiar configuración nginx
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY docker/nginx/sites-available/default.conf /etc/nginx/conf.d/default.conf
-
-# Copiar el código del proyecto (solo public para archivos estáticos)
-COPY public /var/www/html/public
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY sites-available/default.conf /etc/nginx/conf.d/default.conf
 
 # Crear directorios
-RUN mkdir -p /var/log/nginx /var/cache/nginx /var/www/html/storage/app/public \
+RUN mkdir -p /var/log/nginx /var/cache/nginx \
     && chown -R nginx:nginx /var/log/nginx /var/cache/nginx
 
 WORKDIR /var/www/html

@@ -4,7 +4,7 @@ FROM php:8.1-fpm-bookworm AS base
 ENV TZ=America/Bogota
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Instalar dependencias del sistema (Debian Bookworm tiene soporte OpenSSL legacy)
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     git \
@@ -25,10 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxslt1-dev \
     libmagickwand-dev \
     imagemagick \
+    mariadb-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurar OpenSSL para soportar algoritmos legacy ANTES de compilar extensiones
-# Esto es CRÍTICO para certificados DIAN .p12 que usan RC2-40-CBC
+# Configurar OpenSSL para soportar algoritmos legacy
+# CRÍTICO para certificados DIAN .p12 que usan RC2-40-CBC
 RUN cp /etc/ssl/openssl.cnf /etc/ssl/openssl.cnf.backup && \
     cat > /etc/ssl/openssl.cnf << 'OPENSSLEOF'
 openssl_conf = openssl_init
@@ -53,7 +54,6 @@ distinguished_name = req_distinguished_name
 [req_distinguished_name]
 OPENSSLEOF
 
-# Variable de entorno para OpenSSL legacy
 ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
 
 # Configurar e instalar extensiones PHP
@@ -75,7 +75,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         xsl \
         sockets
 
-# Instalar extensiones PECL (Redis e Imagick para QR codes)
+# Instalar extensiones PECL
 RUN pecl install redis-5.3.7 imagick \
     && docker-php-ext-enable redis imagick
 
@@ -84,32 +84,29 @@ RUN pecl install redis-5.3.7 imagick \
 # ============================================
 FROM base AS production
 
-# Configuración PHP optimizada para producción
+# Configuración PHP para producción
 COPY php-production.ini /usr/local/etc/php/conf.d/99-production.ini
 
-# Copiar y configurar entrypoint
+# Copiar entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Mantener variables de entorno
+# Variables de entorno
 ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
 ENV TZ=America/Bogota
 
 WORKDIR /var/www/html
 
-# Usuario no-root para seguridad
-RUN groupadd -g 1000 apidian \
-    && useradd -u 1000 -g apidian -m apidian
-
-# Copiar composer desde imagen oficial
+# Copiar composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Permisos
-RUN chown -R apidian:apidian /var/www/html
+# Crear directorios con permisos correctos
+RUN mkdir -p /var/log/php \
+    && mkdir -p /var/www/html/storage \
+    && mkdir -p /var/www/html/bootstrap/cache
 
 EXPOSE 9000
 
-# Usar entrypoint personalizado
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # ============================================
@@ -117,14 +114,11 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 # ============================================
 FROM base AS development
 
-# Instalar Xdebug para desarrollo
 RUN pecl install xdebug-3.2.2 \
     && docker-php-ext-enable xdebug
 
-# Configuración PHP para desarrollo
 COPY php-development.ini /usr/local/etc/php/conf.d/99-development.ini
 
-# Mantener variables de entorno
 ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
 ENV TZ=America/Bogota
 

@@ -6,8 +6,8 @@ services:
       context: ./docker/nginx
       dockerfile: Dockerfile
     working_dir: /var/www/html
-    expose:
-      - "80"
+    ports:
+      - "3080:80"
     volumes:
       - ./:/var/www/html:cached
       - ./docker/nginx/sites-available:/etc/nginx/conf.d
@@ -15,15 +15,13 @@ services:
       - nginx_logs:/var/log/nginx
     depends_on:
       - php
-    networks:
-      - api_dian
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s
 
   php:
     build:
@@ -39,8 +37,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - api_dian
     environment:
       - APP_NAME=${APP_NAME:-APIDIAN}
       - APP_ENV=${APP_ENV:-production}
@@ -95,8 +91,6 @@ services:
     volumes:
       - apidian_mysql_data:/var/lib/mysql
       - ./docker/mariadb/init:/docker-entrypoint-initdb.d:ro
-    networks:
-      - api_dian
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -122,8 +116,6 @@ services:
       --save 60 1000
     volumes:
       - redis_data:/data
-    networks:
-      - api_dian
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -131,10 +123,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-networks:
-  api_dian:
-    driver: bridge
 
 volumes:
   apidian_mysql_data:

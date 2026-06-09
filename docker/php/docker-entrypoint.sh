@@ -93,7 +93,7 @@ if [ -d "vendor/mpdf/mpdf" ]; then
     chmod -R 777 vendor/mpdf/mpdf
 fi
 
-# [5] Generar APP_KEY si no existe
+# [5] Generar APP_KEY si falta
 if grep -q "^APP_KEY=$" .env 2>/dev/null; then
     echo "[5/8] Generando APP_KEY..."
     php artisan key:generate --force
@@ -107,12 +107,11 @@ php artisan storage:link --force 2>/dev/null || true
 
 # [7] Ejecutar migraciones
 echo "[7/8] Ejecutando migraciones..."
-php artisan migrate --seed --force --no-interaction 2>&1 || echo "WARN: Migraciones fallaron o ya ejecutadas"
+php artisan migrate --seed --force --no-interaction 2>&1 || echo "WARN: Migraciones con error o ya ejecutadas"
 
-# [8] Optimizar
+# [8] Optimizar (SIN route:cache porque hay closures en routes/web.php)
 echo "[8/8] Optimizando..."
 php artisan config:cache
-php artisan route:cache
 php artisan view:cache
 php artisan package:discover --ansi 2>/dev/null || true
 php artisan cache:warmup 2>/dev/null || true

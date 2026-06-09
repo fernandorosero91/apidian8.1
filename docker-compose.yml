@@ -1,7 +1,6 @@
 services:
   # ============================================
   # NGINX - Servidor Web
-  # Dokploy/Traefik maneja SSL externamente
   # ============================================
   nginx:
     build:
@@ -19,8 +18,7 @@ services:
       php:
         condition: service_healthy
     networks:
-      - apidian_network
-      - dokploy-network
+      - default
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
       interval: 30s
@@ -80,7 +78,7 @@ services:
       - ALLOW_PUBLIC_REGISTER=${ALLOW_PUBLIC_REGISTER:-true}
       - SAVE_RESPONSE_DIAN_TO_DB=${SAVE_RESPONSE_DIAN_TO_DB:-false}
     networks:
-      - apidian_network
+      - default
     healthcheck:
       test: ["CMD-SHELL", "php-fpm -t || exit 1"]
       interval: 30s
@@ -89,7 +87,7 @@ services:
       start_period: 60s
 
   # ============================================
-  # MariaDB 10.11 - Base de Datos
+  # MariaDB 10.11
   # ============================================
   mariadb:
     image: mariadb:10.11
@@ -114,7 +112,7 @@ services:
       --max-connections=200
       --skip-name-resolve
     networks:
-      - apidian_network
+      - default
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -123,7 +121,7 @@ services:
       start_period: 30s
 
   # ============================================
-  # Redis 7 - Cache, Sesiones y Colas
+  # Redis 7
   # ============================================
   redis:
     image: redis:7-alpine
@@ -139,18 +137,12 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - apidian_network
+      - default
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-
-networks:
-  apidian_network:
-    driver: bridge
-  dokploy-network:
-    external: true
 
 volumes:
   mariadb_data:
